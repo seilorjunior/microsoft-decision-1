@@ -2,7 +2,9 @@
 
 An interactive learning PoC for [Microsoft-Decision-1](https://commandline.microsoft.com/microsoft-decision-1-model-foundry/): turn a synthetic support ticket into **team probabilities, urgency probability, and a severity score**, then apply your own routing policy.
 
-Built with Node.js and vanilla HTML/CSS/JavaScript. Deploy with Azure Developer CLI (`azd`) and Bicep, or run locally against an existing Foundry deployment.
+Built with Node.js and vanilla HTML/CSS/JavaScript. The PoC is deployed to **Azure App Service**. This repository includes Azure Developer CLI (`azd`) and Bicep configuration for your own deployment, plus a local development workflow.
+
+The deployed hostname, subscription and tenant IDs, resource names, and login credentials are intentionally omitted from this public-facing guide. All configuration examples use dummy values.
 
 > **Learning project, not a production ticket router.** Inference is billable. Use synthetic data only. No ticket is actually routed, and scores are predictions rather than guarantees.
 
@@ -164,6 +166,17 @@ azd provision        # Infrastructure/settings update
 ```
 
 Open `SERVICE_WEB_ENDPOINT` from the environment outputs. These outputs can include your resource identifiers; do not publish them.
+
+### Access your hosted app
+
+1. Open your deployment's `SERVICE_WEB_ENDPOINT` over HTTPS.
+2. Sign in at `/login` with the credentials generated for that environment. Keep `.azure/app-login.txt` private.
+3. Check `/health` for basic server availability. This public endpoint does not call Foundry or verify model access.
+4. Submit a synthetic ticket to verify authenticated inference. This calls the model and incurs inference charges.
+
+Publication to App Service alone does not verify login, managed-identity permissions, or model inference. Check those separately for your deployment.
+
+The current hosted PoC passed HTTPS health, login/logout, session protection, and authenticated configuration/queue checks. Its managed-identity role assignment was verified on the existing Foundry account. Hosted model inference has not yet been exercised; these checks made no billable inference requests.
 
 App Service uses `ManagedIdentityCredential` instead of local CLI credentials. Allow time for inference role assignments to propagate.
 
