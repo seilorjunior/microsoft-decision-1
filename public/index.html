@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Decision-1 / Decision Lab</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="wordmark" href="/">D<span class="mark">/</span>1 <span class="wordmark-sub">DECISION LAB</span></a>
+    <span class="connection" id="connection">CONNECTING</span>
+    <div class="masthead-actions">
+      <a href="https://learn.microsoft.com/azure/foundry/foundry-models/how-to/use-foundry-models-microsoft-decision" target="_blank" rel="noreferrer">API reference <span aria-hidden="true">&#8599;</span></a>
+      <form action="/auth/logout" method="post" id="signout-form" hidden><button class="signout-button" type="submit">Sign out</button></form>
+    </div>
+  </header>
+  <main>
+    <section class="intro">
+      <div class="eyebrow">MICROSOFT-DECISION-1 / INTERACTIVE POC</div>
+      <h1>Less conversation.<br><em>More decision.</em></h1>
+      <div class="intro-aside"><span class="small-label">THE EXPERIMENT</span><p>One support ticket. Three bounded questions. Numerical answers your software can act on.</p><p class="muted">Live model, real probabilities. No generated explanation.</p></div>
+    </section>
+    <div class="pipeline" aria-label="Decision pipeline">
+      <span><b>01</b> Supply the state</span><span aria-hidden="true">&#8594;</span>
+      <span><b>02</b> Score the options</span><span aria-hidden="true">&#8594;</span>
+      <span><b>03</b> Apply your policy</span>
+    </div>
+    <div class="workspace">
+      <section class="input-panel">
+        <div class="section-head"><h2><span class="step">01</span> The ticket</h2><span class="small-label">INPUT / STATE</span></div>
+        <p class="hint">Start with a scenario, then change the wording.</p>
+        <div class="examples" id="examples"></div>
+        <form id="ticket-form">
+          <label for="ticket">Customer support request</label>
+          <textarea id="ticket" name="ticket" maxlength="12000" rows="7" required></textarea>
+          <div class="input-meta"><span>Use synthetic data only</span><span id="character-count">0 / 12,000</span></div>
+          <div class="policy-controls">
+            <div class="slider-heading"><label for="review-threshold">Routing threshold</label><output id="review-value" for="review-threshold">80%</output></div>
+            <input type="range" id="review-threshold" min="0" max="100" value="80">
+            <p class="hint">Below this selected-team probability, request human review.</p>
+            <div class="slider-heading"><label for="urgency-threshold">Urgent escalation threshold</label><output id="urgency-value" for="urgency-threshold">80%</output></div>
+            <input type="range" id="urgency-threshold" min="0" max="100" value="80">
+            <p class="hint">At or above this urgency probability, escalate first.</p>
+            <label class="checkbox"><input type="checkbox" id="reverse-options"> Reverse team option order <span class="muted">/ robustness experiment</span></label>
+          </div>
+          <button type="submit" class="primary" id="decide-button" disabled>Run decision <span aria-hidden="true">&#8594;</span></button>
+          <p class="cost-note">One live API call. Inference charges apply. Nothing is routed automatically.</p>
+        </form>
+        <div class="error" id="error" role="alert" hidden></div>
+        <p id="queue-status" role="status" class="hint"></p>
+        <button type="button" class="signout-button" id="cancel-button" hidden>Cancel current run</button>
+      </section>
+      <section class="results-panel" aria-labelledby="results-title">
+        <div class="section-head"><h2 id="results-title"><span class="step">02</span> The decision</h2><span class="small-label" id="result-status">AWAITING INPUT</span></div>
+        <div id="empty-state" class="empty-state">
+          <div class="empty-glyph" aria-hidden="true">[ ? ]</div>
+          <h3>Not a chatbot.<br>A decision instrument.</h3>
+          <p>Run a ticket to see the model distribute probability across teams, score severity, and assess urgency.</p>
+          <div class="type-chips"><span>choice</span><span>noul</span><span>score</span></div>
+        </div>
+        <div id="results" hidden aria-live="polite">
+          <div class="metrics"><div><span class="small-label">API REQUEST</span><strong id="latency">--</strong><span class="muted">network + response</span></div><div><span class="small-label">INPUT TOKENS</span><strong id="tokens">--</strong><span class="muted">reported by Foundry</span></div><div><span class="small-label">MODE</span><strong class="live-label">LIVE</strong><span class="muted">no simulated output</span></div></div>
+          <div class="result-block"><div class="result-heading"><h3>Which team?</h3><code>choice</code></div><div class="chosen"><span id="chosen-team">--</span><strong id="chosen-probability">--</strong></div><div id="team-bars" class="bars"></div><p class="hint" id="api-confidence"></p></div>
+          <div class="secondary-results">
+            <div class="result-block"><div class="result-heading"><h3>Escalate urgently?</h3><code>noul</code></div><strong class="big-number" id="urgency">--</strong><p class="hint">Probability the condition is true. Not a generated yes/no sentence.</p></div>
+            <div class="result-block"><div class="result-heading"><h3>How severe?</h3><code>score</code></div><strong class="big-number" id="severity">--</strong><p class="hint">Probability-weighted scale index, 0 to 3. Not an integer class.</p></div>
+          </div>
+          <div class="severity-distribution" id="severity-bars"></div>
+          <div class="policy-result" id="policy-result"><div class="small-label">03 / APPLICATION POLICY, NOT MODEL PROSE</div><h3 id="action"></h3><p id="action-reason"></p></div>
+          <p class="hint result-caveat">These scores are predictions, not guarantees. Thresholds need validation on representative labeled data. This PoC never executes a workflow.</p>
+        </div>
+      </section>
+    </div>
+    <section class="inspect-section">
+      <div class="section-head"><h2>Under the hood</h2><span class="small-label">STATE + QUESTIONS &#8594; ANSWERS</span></div>
+      <p class="hint">Not Chat Completions: POST /providers/microsoft/v1/systemone. Authentication is handled by the local server.</p>
+      <div class="inspect-grid"><details open><summary>Request body <span>JSON</span></summary><pre id="request-json">Choose a ticket to inspect the request.</pre></details><details open><summary>Raw model response <span>JSON</span></summary><pre id="response-json">The model response will appear here.</pre></details></div>
+    </section>
+    <section class="benchmark-section">
+      <div><div class="eyebrow">SMALL TEST, NOT A BENCHMARK CLAIM</div><h2>Test the pattern.</h2><p>Run six labeled tickets, paced one at a time to respect deployment rate limits. Check team accuracy and client-observed latency.<br>This tiny set does not measure calibration or validate Microsoft's performance claims.</p></div>
+      <div>
+        <label for="evaluation-mode">Evaluation set</label>
+        <select id="evaluation-mode"><option value="quick">6 quick examples</option><option value="extended">18 labeled challenge tickets</option></select>
+        <button type="button" class="secondary" id="benchmark-button" disabled>Run evaluation</button>
+      </div>
+      <div id="benchmark-status" role="status"></div>
+      <div class="table-wrap" id="benchmark-results" hidden><table><thead><tr><th>Ticket</th><th>Expected</th><th>Predicted</th><th>Probability</th><th>API latency</th><th>Result</th></tr></thead><tbody id="benchmark-body"></tbody></table></div>
+      <pre id="evaluation-summary" aria-label="Evaluation metrics"></pre>
+    </section>
+    <section class="inspect-section">
+      <div class="section-head"><h2>Compare the same decision</h2><span class="small-label">3 LIVE CALLS / ROBUSTNESS</span></div>
+      <p class="hint">Compare the current ticket with reversed options and your own paraphrase. Labels and severity targets are illustrative, not a validated benchmark. Partial results remain if cancelled or a request fails.</p>
+      <label for="paraphrase">Paraphrase the current ticket without changing its meaning</label>
+      <textarea id="paraphrase" maxlength="12000" rows="3"></textarea>
+      <button type="button" class="primary" id="comparison-button" disabled>Run comparison (3 calls)</button>
+      <div class="table-wrap"><table><thead><tr><th>Variant</th><th>Team</th><th>Team probability change</th><th>Urgency</th><th>Severity</th><th>API duration</th></tr></thead><tbody id="comparison-body"></tbody></table></div>
+    </section>
+    <footer><span>Microsoft-Decision-1 / Learning PoC</span><span id="deployment-label"></span><span>Model scores. Your code decides.</span></footer>
+  </main>
+</body>
+</html>

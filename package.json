@@ -1,0 +1,21 @@
+{
+  "name": "decision-1-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A live Microsoft-Decision-1 support-ticket triage playground.",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "build": "node scripts/package.js",
+    "setup-auth": "node scripts/setup-auth.js",
+    "test": "node --test",
+    "test-coverage": "node --test --experimental-test-coverage",
+    "test-browser": "python test/browser_test.py",
+    "check-package": "node scripts/check-package.js",
+    "check": "node --check server.js && node --check decision.js && node --check queue.js && node --check public/contract.js && node --check public/dataset.js && node --check public/app.js && node --check public/login.js && node --check scripts/setup-auth.js && node --check scripts/package.js && node --check scripts/check-package.js && node --check scripts/browser-server.js"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.13.0"
+  }
+}

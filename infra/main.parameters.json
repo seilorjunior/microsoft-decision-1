@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": { "value": "${AZURE_ENV_NAME}" },
+    "location": { "value": "${AZURE_LOCATION}" },
+    "useExistingFoundry": { "value": "${USE_EXISTING_FOUNDRY=false}" },
+    "existingFoundryResourceGroup": { "value": "${EXISTING_FOUNDRY_RESOURCE_GROUP=}" },
+    "existingFoundryAccountName": { "value": "${EXISTING_FOUNDRY_ACCOUNT_NAME=}" },
+    "existingDeploymentName": { "value": "${EXISTING_DEPLOYMENT_NAME=decision-1}" },
+    "appAuthUsername": { "value": "${APP_AUTH_USERNAME}" },
+    "appAuthPasswordHash": { "value": "${APP_AUTH_PASSWORD_HASH}" }
+  }
+}

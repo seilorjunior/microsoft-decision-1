@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in / Decision Lab</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/login.js" defer></script>
+</head>
+<body class="login-page">
+  <header class="masthead">
+    <a class="wordmark" href="/login">D<span class="mark">/</span>1 <span class="wordmark-sub">DECISION LAB</span></a>
+    <span class="small-label">PRIVATE EXPERIMENT / SHARED ACCESS</span>
+  </header>
+  <main class="login-layout">
+    <section class="login-story" aria-labelledby="welcome-title">
+      <div class="eyebrow">MICROSOFT-DECISION-1 / INTERACTIVE POC</div>
+      <h1 id="welcome-title">Your next<br><em>decision<br>starts here.</em></h1>
+      <p class="login-description">A small lab for a different kind of model.<br>Bounded questions. Numerical answers. Your policy.</p>
+      <div class="login-types" aria-label="Model question types">
+        <span><b>01</b> choice</span><span><b>02</b> noul</span><span><b>03</b> score</span>
+      </div>
+    </section>
+    <section class="login-card" aria-labelledby="signin-title">
+      <div class="login-card-heading"><span class="small-label">ACCESS THE LAB</span><span class="login-symbol" aria-hidden="true">[ 1 ]</span></div>
+      <h2 id="signin-title">Welcome back.</h2>
+      <p class="hint">Sign in with your shared lab credentials.</p>
+      <!--LOGIN_ERROR-->
+      <form method="post" action="/auth/login" class="login-form">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" required autofocus>
+        <div class="password-label"><label for="password">Password</label><button type="button" id="toggle-password" aria-controls="password" aria-pressed="false">Show password</button></div>
+        <input type="password" id="password" name="password" autocomplete="current-password" maxlength="256" required>
+        <button type="submit" class="primary">Enter the lab <span aria-hidden="true">&#8594;</span></button>
+      </form>
+      <p class="login-help">Credentials are in your private <code>.azure/app-login.txt</code> file. This is a shared PoC account, not your Azure sign-in.</p>
+      <div class="login-session-note"><span aria-hidden="true">&#9679;</span> Private session &middot; expires after 8 hours</div>
+    </section>
+  </main>
+  <footer class="login-footer"><span>Model scores. Your code decides.</span><span>Use synthetic data only. Inference charges apply.</span></footer>
+</body>
+</html>

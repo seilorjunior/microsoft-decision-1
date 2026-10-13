@@ -1,0 +1,10 @@
+name: decision-1-lab
+infra:
+  provider: bicep
+  path: infra
+services:
+  web:
+    project: .
+    language: js
+    host: appservice
+    dist: dist
