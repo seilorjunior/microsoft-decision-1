@@ -5,6 +5,5 @@ dist/
 infra/*.json
 !infra/main.parameters.json
 .azure/*
-!.azure/deployment-plan.md
 __pycache__/
 *.pyc
