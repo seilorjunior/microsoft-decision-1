@@ -254,7 +254,51 @@ Node's native coverage reporting needs no additional npm dependencies. Coverage 
 
 ## Architecture and project structure
 
-Open the [Mermaid architecture diagram](docs/architecture.mmd) in a Mermaid-capable editor.
+The lab runs as a single Node.js process. Sessions and inference pacing are process-local, so the hosted deployment uses one instance.
+
+```mermaid
+---
+title: Decision-1 Lab authenticated inference architecture
+---
+flowchart LR
+    user["Lab user"]
+    subgraph browser["Browser"]
+        login["Login page<br/>Username and password"]
+        ui["Decision Lab UI<br/>Triage, comparison, evaluation"]
+        contract["Shared contract<br/>Questions and application policy"]
+    end
+    subgraph server["Single Node.js process: local or Azure App Service"]
+        auth["Authentication and validation<br/>Host, origin, input checks"]
+        sessions[("In-memory sessions<br/>8-hour expiry")]
+        queue["Inference queue<br/>1 active, 2 waiting<br/>61-second start spacing"]
+        adapter["Decision API adapter<br/>Token acquisition and response validation"]
+        logs["Safe diagnostics<br/>Request IDs, timing, numeric rate limits"]
+    end
+    credential["Azure credentials<br/>Local: Azure CLI<br/>Hosted: managed identity"]
+    model["Azure Foundry deployment<br/>Microsoft-Decision-1<br/>choice, noul, score"]
+    infra["azd and Bicep<br/>Create new Foundry or reuse existing"]
+
+    user -->|"opens and signs in"| login
+    login -->|"submits same-origin form"| auth
+    auth -->|"creates or checks opaque session"| sessions
+    auth -->|"sets HttpOnly session cookie and serves lab"| ui
+    ui -->|"builds requests and applies thresholds locally"| contract
+    ui -->|"submits authenticated tickets"| auth
+    auth -->|"validates and enqueues inference"| queue
+    queue -->|"paces work and forwards cancellation"| adapter
+    adapter -->|"obtains inference token"| credential
+    adapter -->|"posts state and bounded questions"| model
+    model -->|"returns numeric answers or errors"| adapter
+    adapter -->|"returns validated scores through server"| ui
+    auth -->|"records request status and duration"| logs
+    adapter -->|"records timing and allowlisted throttling"| logs
+    infra -.->|"provisions hosted process and identity"| server
+    infra -.->|"creates model or grants access to existing account"| model
+```
+
+Solid arrows show runtime interactions in the direction of the labeled action. Dashed arrows show deployment configuration. The cylinder represents process-local storage; rectangles represent actors and components.
+
+The [standalone Mermaid source](docs/architecture.mmd) is also available for use in a Mermaid-capable editor.
 
 | Path | Responsibility |
 | --- | --- |
