@@ -16,11 +16,12 @@ The deployed hostname, subscription and tenant IDs, resource names, and login cr
 - [Explore the model](#explore-the-model)
 - [Authentication and privacy](#authentication-and-privacy)
 - [Queueing and cancellation](#queueing-and-cancellation)
+- [Scaling limits](#scaling-limits)
 - [Tests and CI](#tests-and-ci)
 - [Architecture and project structure](#architecture-and-project-structure)
-- [Scaling limits](#scaling-limits)
 - [Troubleshooting](#troubleshooting)
 - [Cleanup](#cleanup)
+- [Publishing checklist](#publishing-checklist)
 
 ## What the model does
 
