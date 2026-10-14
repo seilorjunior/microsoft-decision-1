@@ -24,11 +24,11 @@ param appAuthUsername string
 param appAuthPasswordHash string
 
 @description('Must support Microsoft-Decision-1 DataZoneStandard and have available quota.')
-param foundryLocation string = 'eastus2'
+param foundryLocation string = 'swedencentral'
 
 @minValue(1)
 @maxValue(60)
-param modelCapacity int = 1
+param modelCapacity int = 60
 
 var tags = { 'azd-env-name': environmentName }
 var suffix = uniqueString(subscription().id, environmentName, location)

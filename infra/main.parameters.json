@@ -4,6 +4,7 @@
   "parameters": {
     "environmentName": { "value": "${AZURE_ENV_NAME}" },
     "location": { "value": "${AZURE_LOCATION}" },
+    "foundryLocation": { "value": "${FOUNDRY_LOCATION=swedencentral}" },
     "useExistingFoundry": { "value": "${USE_EXISTING_FOUNDRY=false}" },
     "existingFoundryResourceGroup": { "value": "${EXISTING_FOUNDRY_RESOURCE_GROUP=}" },
     "existingFoundryAccountName": { "value": "${EXISTING_FOUNDRY_ACCOUNT_NAME=}" },
