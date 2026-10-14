@@ -1,5 +1,10 @@
 # Decision-1 Lab
 
+[![CI](https://github.com/seilorjunior/microsoft-decision-1/actions/workflows/ci.yml/badge.svg)](https://github.com/seilorjunior/microsoft-decision-1/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Node.js 24+](https://img.shields.io/badge/node-24%2B-339933?logo=nodedotjs&logoColor=white)
+![Azure App Service](https://img.shields.io/badge/deploy-Azure%20App%20Service-0078D4?logo=microsoftazure&logoColor=white)
+
 An interactive learning PoC for [Microsoft-Decision-1](https://commandline.microsoft.com/microsoft-decision-1-model-foundry/): turn a synthetic support ticket into **team probabilities, urgency probability, and a severity score**, then apply your own routing policy.
 
 Built with Node.js and vanilla HTML/CSS/JavaScript. The PoC is deployed to **Azure App Service**. This repository includes Azure Developer CLI (`azd`) and Bicep configuration for your own deployment, plus a local development workflow.
@@ -8,8 +13,20 @@ The deployed hostname, subscription and tenant IDs, resource names, and login cr
 
 > **Learning project, not a production ticket router.** Inference is billable. Use synthetic data only. No ticket is actually routed, and scores are predictions rather than guarantees.
 
+## Quick start
+
+```powershell
+npm ci
+Copy-Item .env.example .env   # set AZURE_ENDPOINT, DEPLOYMENT_NAME, AZURE_SUBSCRIPTION_ID
+az login
+npm start                     # http://localhost:3000
+```
+
+Requires Node.js 24+, Azure CLI, and an existing Microsoft-Decision-1 deployment. See [Run locally](#run-locally) for details and [Deploy to Azure](#deploy-to-azure) to host it.
+
 ## Contents
 
+- [Quick start](#quick-start)
 - [What the model does](#what-the-model-does)
 - [Run locally](#run-locally)
 - [Deploy to Azure](#deploy-to-azure)
