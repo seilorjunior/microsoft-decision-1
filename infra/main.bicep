@@ -4,6 +4,7 @@ targetScope = 'subscription'
 @maxLength(40)
 param environmentName string
 
+@description('Region for the resource group, App Service plan, and web app (azd AZURE_LOCATION). The Foundry region is separate: see foundryLocation.')
 param location string
 
 @description('Reuse an existing account in this subscription without deploying or resizing its models.')
@@ -23,7 +24,7 @@ param appAuthUsername string
 @maxLength(64)
 param appAuthPasswordHash string
 
-@description('Must support Microsoft-Decision-1 DataZoneStandard and have available quota.')
+@description('Region for a new Foundry account and model (azd FOUNDRY_LOCATION). Must support Microsoft-Decision-1 DataZoneStandard and have available quota; scripts/check-quota.js verifies this before provisioning.')
 param foundryLocation string = 'swedencentral'
 
 @minValue(1)

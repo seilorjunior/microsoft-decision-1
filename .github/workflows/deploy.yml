@@ -1,0 +1,49 @@
+name: Deploy to Azure
+on:
+  workflow_dispatch:
+    inputs:
+      run_smoke_test:
+        description: Run one billable inference call after deployment
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: deploy-production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      FOUNDRY_LOCATION: ${{ vars.FOUNDRY_LOCATION }}
+      USE_EXISTING_FOUNDRY: ${{ vars.USE_EXISTING_FOUNDRY }}
+      EXISTING_FOUNDRY_RESOURCE_GROUP: ${{ vars.EXISTING_FOUNDRY_RESOURCE_GROUP }}
+      EXISTING_FOUNDRY_ACCOUNT_NAME: ${{ vars.EXISTING_FOUNDRY_ACCOUNT_NAME }}
+      EXISTING_DEPLOYMENT_NAME: ${{ vars.EXISTING_DEPLOYMENT_NAME }}
+      APP_AUTH_USERNAME: ${{ vars.APP_AUTH_USERNAME }}
+      APP_AUTH_PASSWORD_HASH: ${{ secrets.APP_AUTH_PASSWORD_HASH }}
+      SMOKE_USERNAME: ${{ vars.APP_AUTH_USERNAME }}
+      SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+      SKIP_SMOKE_TEST: ${{ inputs.run_smoke_test && 'false' || 'true' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2
+      - uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - run: azd auth login --client-id "${{ vars.AZURE_CLIENT_ID }}" --federated-credential-provider github --tenant-id "${{ vars.AZURE_TENANT_ID }}"
+      - run: azd up --no-prompt

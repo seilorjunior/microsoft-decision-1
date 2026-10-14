@@ -8,3 +8,18 @@ services:
     language: js
     host: appservice
     dist: dist
+hooks:
+  preprovision:
+    windows:
+      shell: pwsh
+      run: node scripts/check-quota.js
+    posix:
+      shell: sh
+      run: node scripts/check-quota.js
+  postdeploy:
+    windows:
+      shell: pwsh
+      run: node scripts/smoke.js
+    posix:
+      shell: sh
+      run: node scripts/smoke.js

@@ -19,7 +19,7 @@ export function readConfig(env) {
   }
   const port = Number(env.PORT ?? 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be 1 through 65535.');
-  const requestIntervalMs = Number(env.REQUEST_INTERVAL_MS ?? 61000);
+  const requestIntervalMs = Number(env.REQUEST_INTERVAL_MS ?? 2000);
   if (!Number.isInteger(requestIntervalMs) || requestIntervalMs < 0 || requestIntervalMs > 120000) {
     throw new Error('REQUEST_INTERVAL_MS must be 0 through 120000.');
   }

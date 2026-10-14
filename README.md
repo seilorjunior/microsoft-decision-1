@@ -18,6 +18,7 @@ The deployed hostname, subscription and tenant IDs, resource names, and login cr
 - [Queueing and cancellation](#queueing-and-cancellation)
 - [Tests and CI](#tests-and-ci)
 - [Architecture and project structure](#architecture-and-project-structure)
+- [Scaling limits](#scaling-limits)
 - [Troubleshooting](#troubleshooting)
 - [Cleanup](#cleanup)
 
@@ -72,7 +73,7 @@ AZURE_ENDPOINT=https://example-foundry.cognitiveservices.azure.com
 DEPLOYMENT_NAME=decision-1
 AZURE_SUBSCRIPTION_ID=00000000-0000-0000-0000-000000000000
 PORT=3000
-REQUEST_INTERVAL_MS=61000
+REQUEST_INTERVAL_MS=2000
 ```
 
 Use the **account root endpoint**, not a project URL ending in `/api/projects/...`. The deployment name can differ from the catalog model name.
@@ -179,7 +180,7 @@ Open `SERVICE_WEB_ENDPOINT` from the environment outputs. These outputs can incl
 
 Publication to App Service alone does not verify login, managed-identity permissions, or model inference. Check those separately for your deployment.
 
-The current hosted PoC passed HTTPS health, login/logout, session protection, and authenticated configuration/queue checks. Its managed-identity role assignment was verified on the existing Foundry account. Hosted model inference has not yet been exercised; these checks made no billable inference requests.
+The hosted PoC passed HTTPS health, login/logout, session protection, authenticated configuration/queue checks, and a live managed-identity inference call through `scripts/smoke.js`. Measured on the single B1 instance: the model call took roughly 190 to 520 ms. Token acquisition added about 3 seconds on the first call after a restart and under 5 ms on later calls, because the identity library caches the token. Treat these as one observation, not a benchmark.
 
 App Service uses `ManagedIdentityCredential` instead of local CLI credentials. Allow time for inference role assignments to propagate.
 
@@ -231,7 +232,7 @@ When upgrading an older deployed version that had IP restrictions but no app aut
 The server serializes inference across tabs/users in the same process:
 
 - One active request, at most two waiting requests.
-- Default **61-second spacing between starts**; the first call starts immediately if there is no cooldown.
+- Default **2-second spacing between starts**, allowing at most about 30 request starts per minute on the single app instance; the first call starts immediately if there is no cooldown.
 - Queue countdown in the UI; excess requests receive an explicit HTTP 429.
 - **Cancel current run** removes waiting work and aborts the active HTTP request where possible.
 - Upstream numeric rate-limit metadata is preserved. A 429 `Retry-After` delays later starts, capped at one hour.
@@ -240,6 +241,18 @@ The server serializes inference across tabs/users in the same process:
 An inference request already sent to Azure may still be billed after cancellation. Other applications sharing the deployment, or restarting this server, can still cause throttling. Only shorten the interval after inspecting actual inference limits, not merely configured model capacity.
 
 At the default interval, six sequential calls take roughly five to six minutes; 18 take roughly 18 minutes. Queueing and slow responses can extend these times. State is not shared across separate local/cloud instances.
+
+## Scaling limits
+
+The hosted app is deliberately a single instance. These pieces of state live in process memory:
+
+| State | Effect of a restart | Effect of a second instance |
+| --- | --- | --- |
+| Login sessions (up to 100) | Everyone signs in again | A request can reach an instance that does not know the session |
+| Inference queue and start spacing | The queue and cooldown reset | Each instance paces separately, so total request starts exceed the configured rate and can trigger HTTP 429 |
+| Failed-login counters | Counters reset | Throttling is per instance |
+
+`infra/resources.bicep` pins the App Service plan to one B1 instance with no autoscale. Before adding instances, move sessions and pacing to shared storage such as Azure Cache for Redis, or replace the shared password with Microsoft Entra sign-in through App Service Authentication.
 
 ## Tests and CI
 
@@ -260,13 +273,15 @@ python -m playwright install chromium
 npm run test-browser
 ```
 
-The suite currently includes **42 unit tests** and **3 browser tests**. It exercises response contracts, thresholds, errors, sessions, queue spacing/recovery/cancellation, evaluation metrics, login/logout, mobile layout, comparisons, and evaluations.
+The suite currently includes **45 unit tests** and **3 browser tests**. It exercises response contracts, thresholds, errors, sessions, queue spacing/recovery/cancellation, evaluation metrics, login/logout, mobile layout, comparisons, evaluations, and the deployment helper scripts.
 
 Browser tests start an isolated fixture server. Unit tests inject HTTP/token stubs. **Neither calls Azure nor incurs inference charges.** The live application itself has no mock mode.
 
 Node's native coverage reporting needs no additional npm dependencies. Coverage describes exercised code, not model accuracy, browser execution coverage, or cloud readiness.
 
-[GitHub CI](.github/workflows/ci.yml) runs unit/syntax checks, package-content checks, browser tests, and Bicep compilation. It does not deploy or run live inference. Bicep compilation and a provisioning preview are not substitutes for verifying deployed managed-identity inference.
+[GitHub CI](.github/workflows/ci.yml) runs a dependency audit, unit/syntax checks, package-content checks, browser tests, Bicep compilation, and a secret scan. For pull requests from this repository it can also preview the Azure changes. A separate [manual deploy workflow](.github/workflows/deploy.yml) uses OIDC sign-in; see [CI/CD setup](docs/ci-cd.md). CI itself never runs live inference.
+
+Locally, `azd up` also runs `scripts/smoke.js` after deployment. It signs in and makes **one billable inference call**; set `SKIP_SMOKE_TEST=true` to skip it. Bicep compilation and a provisioning preview are not substitutes for this check.
 
 ## Architecture and project structure
 
@@ -286,7 +301,7 @@ flowchart LR
     subgraph server["Single Node.js process: local or Azure App Service"]
         auth["Authentication and validation<br/>Host, origin, input checks"]
         sessions[("In-memory sessions<br/>8-hour expiry")]
-        queue["Inference queue<br/>1 active, 2 waiting<br/>61-second start spacing"]
+        queue["Inference queue<br/>1 active, 2 waiting<br/>2-second start spacing"]
         adapter["Decision API adapter<br/>Token acquisition and response validation"]
         logs["Safe diagnostics<br/>Request IDs, timing, numeric rate limits"]
     end
@@ -325,7 +340,8 @@ The [standalone Mermaid source](docs/architecture.mmd) is also available for use
 | [public/dataset.js](public/dataset.js) | Illustrative challenge evaluation set |
 | [public/](public/) | Login and interactive lab UI |
 | [infra/](infra/) | Bicep for new/existing Foundry and web hosting |
-| [scripts/](scripts/) | Credential generation, packaging, isolated browser fixture |
+| [scripts/](scripts/) | Credential generation, packaging, quota pre-check, post-deploy smoke test, isolated browser fixture |
+| [docs/](docs/) | Troubleshooting and CI/CD setup |
 | [test/](test/) | Unit and browser regression tests |
 
 ### Safe diagnostics
@@ -338,21 +354,7 @@ Logs contain status, method, durations, queue wait, and allowlisted numeric thro
 
 ## Troubleshooting
 
-| Symptom | Action |
-| --- | --- |
-| App login fails | Read your private `.azure/app-login.txt`; it is not your Azure login. Rotate if needed and restart/apply settings. |
-| Session expires | Sign in again; restarts clear in-memory sessions. |
-| Login is throttled | Wait for the one-minute window to end. Proxy users may share a window. |
-| Azure authentication fails | Run `az login` locally; verify the subscription and inference role. Hosted apps use managed identity. |
-| Foundry HTTP 403 | Check inference RBAC/network access and allow role-assignment propagation. |
-| Foundry HTTP 404 | Check the resource root endpoint and actual deployment name. |
-| HTTP 429 | Inspect queue status and upstream rate-limit metadata; wait and retry manually. |
-| Network failure/timeout | Check connectivity; the inference HTTP timeout is 60 seconds. |
-| Port already in use | Change `PORT` in local `.env`. |
-| No model quota | Request quota, select a supported region, or reuse an existing deployment. |
-| Foundry project provisioning returns `RequestConflict` | The Foundry template serializes model and project operations on the account. Wait for any other account operation to finish, then rerun `azd up` in the same environment. Do not delete a successful model deployment or create a new environment just to retry. |
-| Foundry provisioning returns `FlagMustBeSetForRestore` | The account is soft-deleted even if its resource group no longer exists. Recreate the original group and recover the account with `az cognitiveservices account recover`. Verify recovered deployments before retrying. Purge only after explicitly deciding to discard recoverable resources. |
-| Recovered Foundry account updates report a soft-deleted backing workspace | If the recovered model is healthy, Option A can deploy the app without modifying the account or creating a project. This does not recover the backing workspace. If the account shares the app's resource group, deleting that group also deletes the recovered account, even in reuse mode. |
+Common problems with login, quota, `RequestConflict`, soft-deleted Foundry accounts, and provisioning previews are in [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Cleanup
 
