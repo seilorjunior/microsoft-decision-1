@@ -1,4 +1,4 @@
-# Decision-1 Lab
+# Decision-1 Lab: Smart Support Ticket Triage with Microsoft-Decision-1
 
 [![CI](https://github.com/seilorjunior/microsoft-decision-1/actions/workflows/ci.yml/badge.svg)](https://github.com/seilorjunior/microsoft-decision-1/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
