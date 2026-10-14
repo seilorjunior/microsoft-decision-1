@@ -1,9 +1,17 @@
-# Decision-1 Lab
+<div align="center">
+
+# 🧪 Decision-1 Lab
+
+**Turn a support ticket into team probabilities, urgency, and severity — then route it your way.**
 
 [![CI](https://github.com/seilorjunior/microsoft-decision-1/actions/workflows/ci.yml/badge.svg)](https://github.com/seilorjunior/microsoft-decision-1/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Node.js 24+](https://img.shields.io/badge/node-24%2B-339933?logo=nodedotjs&logoColor=white)
 ![Azure App Service](https://img.shields.io/badge/deploy-Azure%20App%20Service-0078D4?logo=microsoftazure&logoColor=white)
+
+[Quick start](#quick-start) · [What the model does](#what-the-model-does) · [Run locally](#run-locally) · [Deploy to Azure](#deploy-to-azure)
+
+</div>
 
 An interactive learning PoC for [Microsoft-Decision-1](https://commandline.microsoft.com/microsoft-decision-1-model-foundry/): turn a synthetic support ticket into **team probabilities, urgency probability, and a severity score**, then apply your own routing policy.
 
