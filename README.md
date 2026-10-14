@@ -147,15 +147,18 @@ azd auth login
 azd env new decision-lab-new
 azd env set AZURE_SUBSCRIPTION_ID "00000000-0000-0000-0000-000000000000"
 azd env set AZURE_LOCATION eastus2
+azd env set FOUNDRY_LOCATION swedencentral
 azd env set USE_EXISTING_FOUNDRY false
 npm run setup-auth
 azd provision --preview --no-prompt
 azd up
 ```
 
-Defaults: model `Microsoft-Decision-1`, version `1`, deployment `decision-1`, SKU `DataZoneStandard`, capacity `1`, Foundry region `eastus2`. Check that these are supported for your subscription before deploying. Key-based authentication is disabled on newly created Foundry accounts.
+Defaults: model `Microsoft-Decision-1`, version `1`, deployment `decision-1`, SKU `DataZoneStandard`, capacity `60` requests/minute, Foundry region `swedencentral`. Check that these are supported for your subscription before deploying. Key-based authentication is disabled on newly created Foundry accounts.
 
-Additional parameters such as `modelCapacity` and `foundryLocation` can be supplied through [infra/main.parameters.json](infra/main.parameters.json). Avoid switching an already-provisioned environment between modes without reviewing the preview and cleanup implications.
+`FOUNDRY_LOCATION` selects the Foundry account and model region independently of `AZURE_LOCATION`, which selects the web app and resource group region. Set it with `azd env set FOUNDRY_LOCATION swedencentral`. Additional parameters such as `modelCapacity` can be supplied through [infra/main.parameters.json](infra/main.parameters.json). Avoid switching an already-provisioned environment between modes without reviewing the preview and cleanup implications.
+
+If provisioning reports `InsufficientQuota`, check the model quota in `FOUNDRY_LOCATION`. A new deployment requires 60 available requests/minute with the default capacity. Reuse an existing model deployment with Option A, request additional quota, or select a supported region with sufficient available quota. Quota availability does not guarantee live allocation capacity. Review the preview before changing regions; an existing Foundry account cannot be moved by changing its location.
 
 ### Updates and deployment output
 
@@ -347,6 +350,9 @@ Logs contain status, method, durations, queue wait, and allowlisted numeric thro
 | Network failure/timeout | Check connectivity; the inference HTTP timeout is 60 seconds. |
 | Port already in use | Change `PORT` in local `.env`. |
 | No model quota | Request quota, select a supported region, or reuse an existing deployment. |
+| Foundry project provisioning returns `RequestConflict` | The Foundry template serializes model and project operations on the account. Wait for any other account operation to finish, then rerun `azd up` in the same environment. Do not delete a successful model deployment or create a new environment just to retry. |
+| Foundry provisioning returns `FlagMustBeSetForRestore` | The account is soft-deleted even if its resource group no longer exists. Recreate the original group and recover the account with `az cognitiveservices account recover`. Verify recovered deployments before retrying. Purge only after explicitly deciding to discard recoverable resources. |
+| Recovered Foundry account updates report a soft-deleted backing workspace | If the recovered model is healthy, Option A can deploy the app without modifying the account or creating a project. This does not recover the backing workspace. If the account shares the app's resource group, deleting that group also deletes the recovered account, even in reuse mode. |
 
 ## Cleanup
 

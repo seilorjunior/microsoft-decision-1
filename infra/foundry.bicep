@@ -21,6 +21,8 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
   parent: foundry
   name: 'decision-1-poc'
   location: location
+  // Account child operations must run sequentially to avoid RequestConflict.
+  dependsOn: [deployment]
   identity: { type: 'SystemAssigned' }
   properties: { displayName: 'Decision-1 Lab', description: 'Support-ticket decision model PoC' }
 }
