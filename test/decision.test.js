@@ -100,7 +100,9 @@ test('reports upstream, timeout, JSON and auth errors without success-shaped fal
 });
 
 test('validates resource root configuration', () => {
-  assert.equal(readConfig({ AZURE_ENDPOINT: 'https://example.cognitiveservices.azure.com/', DEPLOYMENT_NAME: 'decision-1' }).port, 3000);
+  const config = readConfig({ AZURE_ENDPOINT: 'https://example.cognitiveservices.azure.com/', DEPLOYMENT_NAME: 'decision-1' });
+  assert.equal(config.port, 3000);
+  assert.equal(config.requestIntervalMs, 2000);
   for (const endpoint of ['http://example.cognitiveservices.azure.com', 'https://example.com', 'https://x.cognitiveservices.azure.com/other', 'https://x.cognitiveservices.azure.com/?key=secret']) {
     assert.throws(() => readConfig({ AZURE_ENDPOINT: endpoint, DEPLOYMENT_NAME: 'decision-1' }));
   }

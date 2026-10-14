@@ -8,20 +8,59 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - run: npm audit --audit-level=high
       - run: npm test
       - run: npm run check
       - run: npm run build
       - run: npm run check-package
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.13'
       - run: pip install -r requirements-browser.txt
       - run: python -m playwright install --with-deps chromium
       - run: npm run test-browser
       - run: az bicep build --file infra/main.bicep --stdout > /dev/null
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  preview:
+    # Runs only when Azure OIDC variables are configured and the pull request comes from this repository.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    # No GitHub environment here, so the federated credential subject is the pull_request claim.
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      FOUNDRY_LOCATION: ${{ vars.FOUNDRY_LOCATION }}
+      USE_EXISTING_FOUNDRY: ${{ vars.USE_EXISTING_FOUNDRY }}
+      EXISTING_FOUNDRY_RESOURCE_GROUP: ${{ vars.EXISTING_FOUNDRY_RESOURCE_GROUP }}
+      EXISTING_FOUNDRY_ACCOUNT_NAME: ${{ vars.EXISTING_FOUNDRY_ACCOUNT_NAME }}
+      EXISTING_DEPLOYMENT_NAME: ${{ vars.EXISTING_DEPLOYMENT_NAME }}
+      APP_AUTH_USERNAME: ${{ vars.APP_AUTH_USERNAME }}
+      APP_AUTH_PASSWORD_HASH: ${{ secrets.APP_AUTH_PASSWORD_HASH }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2
+      - uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - run: azd auth login --client-id "${{ vars.AZURE_CLIENT_ID }}" --federated-credential-provider github --tenant-id "${{ vars.AZURE_TENANT_ID }}"
+      - run: azd provision --preview --no-prompt
