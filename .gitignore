@@ -2,8 +2,31 @@ node_modules/
 .env
 coverage/
 dist/
-infra/*.json
-!infra/main.parameters.json
-.azure/*
+
+# Local infrastructure parameters
+infra/*.parameters.local.json
+infra/*.parameters.override.json
+
+.azure/
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editors
+.vscode/*
+!.vscode/tasks.json
+.idea/
+
+# Operating systems
+.DS_Store
+Thumbs.db
